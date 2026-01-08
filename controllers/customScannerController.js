@@ -1,4 +1,3 @@
-// controllers/customScannerController.js
 const axios = require('axios');
 const cache = require('../utils/cache');
 const tickerToId = require('../utils/tickers');
@@ -7,7 +6,9 @@ const ScanModel = require('../models/ScanModel'); // reuse ScanModel for coin da
 
 const CACHE_KEY = 'customWatchlist';
 
-// Save or update user's custom watchlist
+// ----------------------
+// POST '/' - Save or overwrite watchlist
+// ----------------------
 exports.saveWatchlist = async (req, res) => {
   const { tickers } = req.body;
   if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
@@ -15,14 +16,12 @@ exports.saveWatchlist = async (req, res) => {
   }
 
   try {
-    // Save to MongoDB
     const updated = await CustomWatchlist.findOneAndUpdate(
       { userId: 'defaultUser' },
       { tickers, updatedAt: new Date() },
       { upsert: true, new: true }
     );
 
-    // Update cache
     cache.set(CACHE_KEY, updated.tickers);
 
     res.json({ success: true, tickers: updated.tickers });
@@ -32,10 +31,11 @@ exports.saveWatchlist = async (req, res) => {
   }
 };
 
-// Fetch user's custom watchlist and get coin data
+// ----------------------
+// GET '/' - Fetch watchlist + coin data
+// ----------------------
 exports.getWatchlistData = async (req, res) => {
   try {
-    // Get tickers from cache first, fallback to DB
     let tickers = cache.get(CACHE_KEY);
     if (!tickers) {
       const doc = await CustomWatchlist.findOne({ userId: 'defaultUser' });
@@ -43,17 +43,11 @@ exports.getWatchlistData = async (req, res) => {
       cache.set(CACHE_KEY, tickers);
     }
 
-    if (!tickers || tickers.length === 0) {
-      return res.json({ tickers: [], coins: {} });
-    }
+    if (!tickers || tickers.length === 0) return res.json({ tickers: [], coins: {} });
 
-    // Map to CoinGecko IDs
     const fetchList = tickers.map(t => tickerToId[t.toUpperCase()]).filter(Boolean);
-    if (fetchList.length === 0) {
-      return res.json({ tickers, coins: {} });
-    }
+    if (fetchList.length === 0) return res.json({ tickers, coins: {} });
 
-    // Fetch coin data from CoinGecko
     const response = await axios.get(
       'https://api.coingecko.com/api/v3/coins/markets',
       {
@@ -82,7 +76,7 @@ exports.getWatchlistData = async (req, res) => {
         low24h: coin.low_24h
       };
 
-      // Optionally store historical data in ScanModel
+      // Optionally store historical data
       await ScanModel.create({
         ticker,
         price: coin.current_price,
@@ -96,5 +90,81 @@ exports.getWatchlistData = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch watchlist data' });
+  }
+};
+
+// ----------------------
+// PATCH '/' - Edit watchlist (add/remove tickers)
+// ----------------------
+exports.editWatchlist = async (req, res) => {
+  const { add = [], remove = [] } = req.body;
+
+  try {
+    const doc = await CustomWatchlist.findOne({ userId: 'defaultUser' });
+    if (!doc) return res.status(404).json({ error: 'Watchlist not found' });
+
+    let tickers = doc.tickers;
+
+    // Add new tickers
+    for (const t of add) {
+      if (!tickers.includes(t.toUpperCase())) tickers.push(t.toUpperCase());
+    }
+
+    // Remove tickers
+    tickers = tickers.filter(t => !remove.includes(t.toUpperCase()));
+
+    const updated = await CustomWatchlist.findOneAndUpdate(
+      { userId: 'defaultUser' },
+      { tickers, updatedAt: new Date() },
+      { new: true }
+    );
+
+    cache.set(CACHE_KEY, updated.tickers);
+    res.json({ success: true, tickers: updated.tickers });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to edit watchlist' });
+  }
+};
+
+
+// ----------------------
+// DELETE '/' - Delete entire watchlist
+// ----------------------
+exports.deleteWatchlist = async (req, res) => {
+  try {
+    await CustomWatchlist.findOneAndDelete({ userId: 'defaultUser' });
+    cache.del(CACHE_KEY);
+    res.json({ success: true, message: 'Watchlist deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete watchlist' });
+  }
+};
+
+// ----------------------
+// DELETE '/:ticker' - Delete single ticker
+// ----------------------
+exports.deleteTicker = async (req, res) => {
+  const { ticker } = req.params;
+  if (!ticker) return res.status(400).json({ error: 'Ticker is required' });
+
+  try {
+    const doc = await CustomWatchlist.findOne({ userId: 'defaultUser' });
+    if (!doc) return res.status(404).json({ error: 'Watchlist not found' });
+
+    const updatedTickers = doc.tickers.filter(t => t.toUpperCase() !== ticker.toUpperCase());
+
+    const updated = await CustomWatchlist.findOneAndUpdate(
+      { userId: 'defaultUser' },
+      { tickers: updatedTickers, updatedAt: new Date() },
+      { new: true }
+    );
+
+    cache.set(CACHE_KEY, updated.tickers);
+    res.json({ success: true, tickers: updated.tickers });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete ticker' });
   }
 };
