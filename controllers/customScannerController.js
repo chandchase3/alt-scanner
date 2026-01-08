@@ -1,28 +1,42 @@
 const axios = require('axios');
-const cache = require('../utils/cache');
-const tickerToId = require('../utils/tickers');
 const CustomWatchlist = require('../models/CustomWatchlist');
-const ScanModel = require('../models/ScanModel'); // reuse ScanModel for coin data
+const ScanModel = require('../models/ScanModel'); //historical data
 
+// Utils
+const getCoinList = require('../utils/coinList');
+const normalizeCoinInputs = require('../utils/normalizeCoin');
+const nameToTicker = require('../utils/coinNameToTicker');
+const { getCoinGeckoId } = require('../utils/coinHelpers');
+const cache = require('../utils/cache');
+const { logCoinGeckoRequest } = require('../utils/logger');
+
+
+// Constants for caching
+const CACHE_KEY_TICKERS = 'customWatchlist';
 const CACHE_KEY = 'customWatchlist';
+const CACHE_KEY_COINS = 'customWatchlistCoins';
+const COINS_CACHE_TTL = 10
 
-// ----------------------
-// POST '/' - Save or overwrite watchlist
-// ----------------------
+// POST '/'
 exports.saveWatchlist = async (req, res) => {
   const { tickers } = req.body;
+  
+  // Validate input
   if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
     return res.status(400).json({ error: 'Please provide an array of tickers' });
   }
 
   try {
+    // Save the tickers to MongoDB, overwrite existing
     const updated = await CustomWatchlist.findOneAndUpdate(
-      { userId: 'defaultUser' },
-      { tickers, updatedAt: new Date() },
+      { userId: 'defaultUser' },                          // single user example
+      { tickers: tickers.map(t => t.toUpperCase()), updatedAt: new Date() },
       { upsert: true, new: true }
     );
 
-    cache.set(CACHE_KEY, updated.tickers);
+    // Update cache
+    cache.set(CACHE_KEY_TICKERS, updated.tickers);
+    cache.del(CACHE_KEY_COINS); // invalidate coin cache because tickers changed
 
     res.json({ success: true, tickers: updated.tickers });
   } catch (err) {
@@ -31,29 +45,52 @@ exports.saveWatchlist = async (req, res) => {
   }
 };
 
-// ----------------------
+// Helper to log requests with timestamp
+const logRequest = (message) => {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+};
+
 // GET '/' - Fetch watchlist + coin data
-// ----------------------
 exports.getWatchlistData = async (req, res) => {
   try {
-    let tickers = cache.get(CACHE_KEY);
+    // -----------------------------
+    // Step 1: Get tickers from cache or DB
+    // -----------------------------
+    let tickers = cache.get(CACHE_KEY_TICKERS);
     if (!tickers) {
       const doc = await CustomWatchlist.findOne({ userId: 'defaultUser' });
       tickers = doc ? doc.tickers : [];
-      cache.set(CACHE_KEY, tickers);
+      cache.set(CACHE_KEY_TICKERS, tickers);
+      logRequest(`Fetched tickers from DB: ${tickers.join(', ')}`);
+    } else {
+      logRequest(`Fetched tickers from cache: ${tickers.join(', ')}`);
     }
 
-    if (!tickers || tickers.length === 0) return res.json({ tickers: [], coins: {} });
+    if (!tickers || tickers.length === 0) {
+      return res.json({ tickers: [], coins: {} });
+    }
 
-    const fetchList = tickers.map(t => tickerToId[t.toUpperCase()]).filter(Boolean);
-    if (fetchList.length === 0) return res.json({ tickers, coins: {} });
+    // -----------------------------
+    // Step 2: Check cached coin data
+    // -----------------------------
+    const cachedCoins = cache.get(CACHE_KEY_COINS);
+    if (cachedCoins) {
+      logRequest('Returning coins from cache');
+      return res.json({ tickers, coins: cachedCoins });
+    }
+
+    // -----------------------------
+    // Step 3: Fetch from CoinGecko
+    // -----------------------------
+    const coinIds = tickers.map(t => t.toLowerCase()).join(','); // backend now expects proper IDs or names
+    logRequest(`Fetching from CoinGecko: ${coinIds}`);
 
     const response = await axios.get(
       'https://api.coingecko.com/api/v3/coins/markets',
       {
         params: {
           vs_currency: 'usd',
-          ids: fetchList.join(','),
+          ids: coinIds,
           order: 'market_cap_desc',
           per_page: 250,
           page: 1,
@@ -62,11 +99,13 @@ exports.getWatchlistData = async (req, res) => {
       }
     );
 
+    // -----------------------------
+    // Step 4: Transform data
+    // -----------------------------
     const coins = {};
     for (const coin of response.data) {
-      const ticker = Object.keys(tickerToId).find(k => tickerToId[k] === coin.id);
-      if (!ticker) continue;
-
+      // Match by ticker (symbol) for frontend
+      const ticker = coin.symbol.toUpperCase();
       coins[ticker] = {
         price: coin.current_price,
         change24h: coin.price_change_percentage_24h,
@@ -76,26 +115,39 @@ exports.getWatchlistData = async (req, res) => {
         low24h: coin.low_24h
       };
 
-      // Optionally store historical data
-      await ScanModel.create({
-        ticker,
-        price: coin.current_price,
-        change24h: coin.price_change_percentage_24h,
-        volume24h: coin.total_volume,
-        marketCap: coin.market_cap
-      });
+      // Optional: store in ScanModel
+      // await ScanModel.create({
+      //   ticker,
+      //   price: coin.current_price,
+      //   change24h: coin.price_change_percentage_24h,
+      //   volume24h: coin.total_volume,
+      //   marketCap: coin.market_cap
+      // });
     }
 
-    res.json({ tickers, coins });
+    // -----------------------------
+    // Step 5: Cache results for 20 seconds
+    // -----------------------------
+    cache.set(CACHE_KEY_COINS, coins, 20);
+    logRequest(`Cached coins for 20s`);
+
+    console.log('Tickers:', tickers);
+    console.log('Coins:', coins);
+
+    return res.json({ tickers, coins });
+
   } catch (err) {
+    if (err.response?.status === 429) {
+      logRequest('CoinGecko API rate limit exceeded');
+      return res.status(429).json({ error: 'CoinGecko API rate limit exceeded. Please try again later.' });
+    }
+
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch watchlist data' });
   }
 };
 
-// ----------------------
 // PATCH '/' - Edit watchlist (add/remove tickers)
-// ----------------------
 exports.editWatchlist = async (req, res) => {
   const { add = [], remove = [] } = req.body;
 
@@ -105,13 +157,14 @@ exports.editWatchlist = async (req, res) => {
 
     let tickers = doc.tickers;
 
-    // Add new tickers
-    for (const t of add) {
-      if (!tickers.includes(t.toUpperCase())) tickers.push(t.toUpperCase());
+    // Normalize and add new tickers
+    const normalizedAdd = await normalizeCoinInputs(add);
+    for (const t of normalizedAdd) {
+      if (!tickers.includes(t)) tickers.push(t);
     }
 
-    // Remove tickers
-    tickers = tickers.filter(t => !remove.includes(t.toUpperCase()));
+    // Remove tickers (already in symbols)
+    tickers = tickers.filter(t => !remove.map(r => r.toUpperCase()).includes(t));
 
     const updated = await CustomWatchlist.findOneAndUpdate(
       { userId: 'defaultUser' },
@@ -127,14 +180,15 @@ exports.editWatchlist = async (req, res) => {
   }
 };
 
-
-// ----------------------
 // DELETE '/' - Delete entire watchlist
-// ----------------------
 exports.deleteWatchlist = async (req, res) => {
   try {
     await CustomWatchlist.findOneAndDelete({ userId: 'defaultUser' });
-    cache.del(CACHE_KEY);
+
+    // Clear caches
+    cache.del(CACHE_KEY_TICKERS);
+    cache.del(CACHE_KEY_COINS);
+
     res.json({ success: true, message: 'Watchlist deleted' });
   } catch (err) {
     console.error(err);
@@ -142,9 +196,7 @@ exports.deleteWatchlist = async (req, res) => {
   }
 };
 
-// ----------------------
-// DELETE '/:ticker' - Delete single ticker
-// ----------------------
+// DELETE '/:ticker' - Delete a single ticker from watchlist
 exports.deleteTicker = async (req, res) => {
   const { ticker } = req.params;
   if (!ticker) return res.status(400).json({ error: 'Ticker is required' });
@@ -161,7 +213,10 @@ exports.deleteTicker = async (req, res) => {
       { new: true }
     );
 
-    cache.set(CACHE_KEY, updated.tickers);
+    // Update caches
+    cache.set(CACHE_KEY_TICKERS, updated.tickers);
+    cache.del(CACHE_KEY_COINS);
+
     res.json({ success: true, tickers: updated.tickers });
   } catch (err) {
     console.error(err);

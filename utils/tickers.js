@@ -6,7 +6,8 @@ const tickerToId = {
   ADA: 'cardano',
   BNB: 'binancecoin',
   SOL: 'solana',
-  XRP: 'ripple'
+  LTC: 'Litecoin',
+  LINK: 'chainlink'
   // add more as needed
 };
 
