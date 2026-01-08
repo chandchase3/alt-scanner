@@ -3,9 +3,16 @@ const cache = require('../utils/cache');
 const tickerToId = require('../utils/tickers');
 const ScanModel = require('../models/ScanModel');
 
-// Multi-ticker fetch with full metrics
+/**
+ * Multi-ticker fetch with full metrics and hot-mover filtering
+ * Query params:
+ *   tickers = comma-separated ticker symbols (required)
+ *   minChange = minimum 24h % change to be considered a hot mover (optional)
+ *   minVolume = minimum 24h volume to be considered a hot mover (optional)
+ */
 exports.getMultiCoinPrices = async (req, res) => {
-  const tickersParam = req.query.tickers;
+  const { tickers: tickersParam, minChange, minVolume } = req.query;
+
   if (!tickersParam) {
     return res.status(400).json({ error: 'Please provide tickers' });
   }
@@ -14,7 +21,7 @@ exports.getMultiCoinPrices = async (req, res) => {
   const results = {};
   const fetchList = [];
 
-  // Check cache or unsupported tickers
+  // Step 1: Check cache or unsupported tickers
   for (const ticker of tickers) {
     const coinId = tickerToId[ticker];
     if (!coinId) {
@@ -30,7 +37,7 @@ exports.getMultiCoinPrices = async (req, res) => {
     }
   }
 
-  // Fetch uncached coins from CoinGecko
+  // Step 2: Fetch uncached coins from CoinGecko
   if (fetchList.length > 0) {
     try {
       const ids = fetchList.map(f => f.coinId).join(',');
@@ -40,7 +47,7 @@ exports.getMultiCoinPrices = async (req, res) => {
         {
           params: {
             vs_currency: 'usd',
-            ids: ids,
+            ids,
             order: 'market_cap_desc',
             per_page: 250,
             page: 1,
@@ -55,13 +62,13 @@ exports.getMultiCoinPrices = async (req, res) => {
         );
         if (!ticker) continue;
 
-        // Update cache
+        // Step 3: Update cache
         cache.set(ticker, coin);
 
-        // Update results object
+        // Step 4: Update results object
         results[ticker] = { source: 'api', data: coin };
 
-        // Save to MongoDB
+        // Step 5: Save to MongoDB
         await ScanModel.create({
           ticker,
           price: coin.current_price,
@@ -75,8 +82,38 @@ exports.getMultiCoinPrices = async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch crypto data' });
     }
   }
+  
+  
 
-  res.json(results);
+  // Step 6: Filter hot movers
+  const hotMovers = [];
+  const minChangeNum = minChange ? parseFloat(minChange) : 0;
+  const minVolumeNum = minVolume ? parseFloat(minVolume) : 0;
+
+  for (const ticker of Object.keys(results)) {
+    const coin = results[ticker].data;
+    // TEST TEST TEST TEST TEST
+    console.log('Coin:', coin.symbol, 'Change24h:', coin.price_change_percentage_24h, 'Volume24h:', coin.total_volume);
+    if (
+      coin &&
+      (coin.price_change_percentage_24h >= minChangeNum) &&
+      (coin.total_volume >= minVolumeNum)
+    ) {
+      hotMovers.push({
+        ticker,
+        price: coin.current_price,
+        change24h: coin.price_change_percentage_24h,
+        volume24h: coin.total_volume,
+        marketCap: coin.market_cap
+      });
+    }
+  }
+
+  // Step 7: Return results + hot movers
+  res.json({
+    results,
+    hotMovers
+  });
 };
 
 // Optional single ticker endpoint
