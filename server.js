@@ -5,6 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const cryptoRoutes = require('./routes/cryptoRoutes');
+const customScannerRoutes = require('./routes/customScannerRoutes');
 
 const app = express();
 
@@ -14,6 +15,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/crypto', cryptoRoutes);
+app.use('/api/custom-scanner', customScannerRoutes);
+
 
 // Test route
 app.get('/', (req, res) => res.send('Alt-Scanner API is running'));
