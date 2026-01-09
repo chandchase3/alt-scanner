@@ -15,21 +15,26 @@ export const getFavCoins = async (req, res) => {
 // POST add a new coin
 export const addFavCoin = async (req, res) => {
   try {
-    const { ticker, coingeckoId } = req.body;
+    const { coingeckoId } = req.body;
 
-    if (!ticker || !coingeckoId) {
-      return res.status(400).json({ message: 'ticker and coingeckoId required' });
+    if (!coingeckoId) {
+      return res.status(400).json({ message: 'coingeckoId is required' });
     }
+
+    // Generate ticker automatically from coingeckoId
+    const ticker = coingeckoId.toUpperCase();
 
     const coin = new FavCoin({ ticker, coingeckoId });
     const savedCoin = await coin.save();
 
     res.status(201).json(savedCoin);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Coin already exists' });
+    }
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // DELETE a coin
 export const deleteFavCoin = async (req, res) => {
@@ -77,4 +82,3 @@ export const getMarketData = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
