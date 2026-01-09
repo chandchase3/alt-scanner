@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { registerUser } from '../redux/slices/userSlice.js';
 import axios from 'axios';
 import { setCredentials } from '../redux/slices/userSlice.js';
 import styles from './Auth.module.css';
 
-const API_BASE = 'http://localhost:3000/api/auth';
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -30,24 +30,27 @@ export default function Register() {
   // Submit registration
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     try {
-      const res = await axios.post(`${API_BASE}/register`, form);
+      // Dispatch the thunk
+      const resultAction = await dispatch(registerUser(form));
 
-      // Update Redux state with user + token
-      dispatch(setCredentials(res.data));
-
-      // Save token to localStorage
-      localStorage.setItem('token', res.data.token);
-
-      // Redirect to home/dashboard
-      navigate('/');
+      if (registerUser.fulfilled.match(resultAction)) {
+        // registration succeeded
+        console.log('Registered user:', resultAction.payload);
+        navigate('/'); // redirect to home
+      } else {
+        // registration failed
+        console.error('Registration failed:', resultAction.payload);
+        alert(resultAction.payload);
+      }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error('Unexpected error:', err);
     }
   };
+
+
+
 
   return (
     <div className={styles.container}>

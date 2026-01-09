@@ -7,7 +7,7 @@ import userReducer from './slices/userSlice.js';
 
 const store = configureStore({
   reducer: {
-    // user: userReducer,
+    user: userReducer,
     // watchlists: watchlistsReducer,
     // coinData: coinDataReducer,
     // alerts: alertsReducer,
