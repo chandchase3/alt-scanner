@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getWatchlist, saveWatchlist, editWatchlist, deleteTicker } from '../api/customScannerApi';
+import { getWatchlist, saveWatchlist, editWatchlist, deleteTicker } from '../../api/customScannerApi';
 
 export default function WatchlistManager({ onUpdate }) {
   const [tickers, setTickers] = useState([]);

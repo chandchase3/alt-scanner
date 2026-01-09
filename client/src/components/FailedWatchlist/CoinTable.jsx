@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getWatchlist } from '../api/customScannerApi';
+import { getWatchlist } from '../../api/customScannerApi';
 
 export default function CoinTable({ refresh }) {
   const [coins, setCoins] = useState({});

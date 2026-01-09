@@ -1,11 +1,11 @@
-import CustomWatchlist from './components/CustomWatchlist';
-import './App.css';
-
+// App.jsx
+import React from "react";
+import FavCoins from "./components/FavCoins/FavCoins";
 
 function App() {
   return (
     <div>
-      <CustomWatchlist />
+      <FavCoins />
     </div>
   );
 }
