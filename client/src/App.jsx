@@ -1,11 +1,11 @@
 // App.jsx
 import React from "react";
-import FavCoins from "./components/FavCoins/FavCoins";
+import Favs from "./components/Favs/Favs";
 
 function App() {
   return (
     <div>
-      <FavCoins />
+      <Favs />
     </div>
   );
 }

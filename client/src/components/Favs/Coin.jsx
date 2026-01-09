@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CoinRow = ({ coin, onClick }) => {
+const Coin = ({ coin, onClick }) => {
   return (
     <tr
       className="coin-row"
@@ -16,4 +16,4 @@ const CoinRow = ({ coin, onClick }) => {
   );
 };
 
-export default CoinRow;
+export default Coin;

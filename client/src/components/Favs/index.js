@@ -1,3 +1,3 @@
 export { default as FavControls } from './FavControls';
 export { default as MarketData } from './MarketData';
-export { default as CoinRow } from './CoinRow';
+export { default as Coin } from './Coin';
