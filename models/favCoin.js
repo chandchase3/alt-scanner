@@ -1,4 +1,3 @@
-// models/favCoin.js
 import mongoose from 'mongoose';
 
 const favCoinSchema = new mongoose.Schema({
@@ -13,6 +12,11 @@ const favCoinSchema = new mongoose.Schema({
     required: true,
     lowercase: true,
     trim: true,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // references User model
+    required: true,
   },
   createdAt: {
     type: Date,
