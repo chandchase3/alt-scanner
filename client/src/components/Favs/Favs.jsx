@@ -9,21 +9,21 @@ const API_BASE = 'http://localhost:3000/api/fav-coins';
 export default function Favs() {
   const [watchlist, setWatchlist] = useState(initialCoins);
 
-  // --- Fetch watchlist on mount ---
-  // useEffect(() => {
-  //   const fetchWatchlist = async () => {
-  //     try {
-  //       const res = await axios.get(API_BASE);
-  //       setWatchlist(res.data);
-  //     } catch (err) {
-  //       console.error('Failed to fetch watchlist', err);
-  //     }
-  //   };
-  //   fetchWatchlist();
-  // }, []);
 
-  // --- Placeholder handlers ---
-  const handleAdd = () => console.log('Add clicked');
+const handleAdd = async ({ coingeckoId }) => {
+  try {
+    const res = await axios.post(API_BASE, { coingeckoId });
+    // Display name in table same as ID (or uppercase if you want)
+    setWatchlist((prev) => [
+      { ...res.data, ticker: res.data.coingeckoId.toUpperCase() },
+      ...prev,
+    ]);
+  } catch (err) {
+    console.error('Failed to add coin', err);
+    alert('Failed to add coin');
+  }
+};
+
   const handleRefresh = () => console.log('Refresh clicked');
   const handleRowClick = (ticker) => alert(`You clicked ${ticker}`);
   const handleHeaderClick = (key) => console.log(`Header clicked: ${key}`);
@@ -43,3 +43,27 @@ export default function Favs() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+  // --- Fetch watchlist on mount ---
+  // useEffect(() => {
+  //   const fetchWatchlist = async () => {
+  //     try {
+  //       const res = await axios.get(API_BASE);
+  //       setWatchlist(res.data);
+  //     } catch (err) {
+  //       console.error('Failed to fetch watchlist', err);
+  //     }
+  //   };
+  //   fetchWatchlist();
+  // }, []);

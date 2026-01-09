@@ -1,13 +1,26 @@
-import React from 'react';
+import { useState } from 'react';
 
-const FavControls = ({ onAdd, onRefresh }) => {
+export default function FavControls({ onAdd, onRefresh }) {
+  const [input, setInput] = useState('');
+
+  const handleAddClick = () => {
+    const coingeckoId = input.trim().toLowerCase(); // user types coingeckoId
+    if (!coingeckoId) return;
+
+    onAdd({ coingeckoId }); // just send coingeckoId to parent
+    setInput('');
+  };
+
   return (
-    <div className="fav-add-coin">
-      <input type="text" placeholder="Add ticker or coin" />
-      <button onClick={onAdd}>Add</button>
-      <button onClick={onRefresh} style={{ marginLeft: '0.5rem' }}>Refresh</button>
+    <div className="fav-controls">
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Enter CoinGecko ID (e.g., bitcoin)"
+      />
+      <button onClick={handleAddClick}>Add</button>
+      <button onClick={onRefresh}>Refresh</button>
     </div>
   );
-};
-
-export default FavControls;
+}
