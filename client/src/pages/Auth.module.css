@@ -1,0 +1,65 @@
+/* ====== PAGE CONTAINER ====== */
+
+.container {
+  min-height: 100vh;
+  padding: 32px;
+  background-color: #0a0a0a;
+  color: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ====== TITLE ====== */
+
+.title {
+  font-size: 28px;
+  font-weight: 400;
+  margin-bottom: 24px;
+}
+
+/* ====== FORM ====== */
+
+.controls {
+  width: 100%;
+  max-width: 420px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ====== INPUT ====== */
+
+.input {
+  padding: 10px 12px;
+  font-size: 1em;
+  border-radius: 6px;
+  border: 1px solid #ffffff33;
+  background-color: #1b1f2b;
+  color: #ffffff;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #ffffff66;
+}
+
+/* ====== BUTTON ====== */
+
+.button {
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 1em;
+  border-radius: 6px;
+  border: none;
+  background-color: #1b1f2b;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #2a2f3e;
+}
