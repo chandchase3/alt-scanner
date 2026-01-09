@@ -1,31 +1,38 @@
 // server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import favCoinsRoutes from './routes/favCoinsRoutes.js';
 
-const cryptoRoutes = require('./routes/cryptoRoutes');
-const customScannerRoutes = require('./routes/customScannerRoutes');
+dotenv.config();
 
 const app = express();
 
-// Middleware
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
 
-// Routes
-app.use('/api/crypto', cryptoRoutes);
-app.use('/api/custom-scanner', customScannerRoutes);
+// ===== ROUTES =====
+app.use('/api/fav-coins', favCoinsRoutes);
 
+// ===== HEALTH CHECK =====
+app.get('/', (req, res) => {
+  res.send('Crypto Scanner Backend is running!');
+});
 
-// Test route
-app.get('/', (req, res) => res.send('Alt-Scanner API is running'));
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// Start server
+// ===== DATABASE CONNECTION & SERVER START =====
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err.message);
+  });
