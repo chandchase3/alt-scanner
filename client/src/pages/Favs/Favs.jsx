@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './Favs.css';
-import { FavControls, MarketData, Coin } from '.';
+import { FavControls, MarketData, Coin } from './';
 import { columns } from './data';
 
 const API_BASE = 'http://localhost:3000/api/fav-coins';
@@ -65,10 +64,10 @@ export default function Favs() {
   const handleHeaderClick = key => console.log(`Header clicked: ${key}`);
 
   return (
-    <div className="fav-container">
+    <div className="lists-container">
       <FavControls onAdd={handleAdd} onRefresh={handleRefresh} />
 
-      <table className="fav-table">
+      <table className="lilsts-table">
         <MarketData columns={columns} onHeaderClick={handleHeaderClick} />
         <tbody>
           {coinList.length === 0 ? (

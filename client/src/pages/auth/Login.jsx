@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { setCredentials } from '../redux/slices/userSlice.js';
+import { setCredentials } from '../../redux/slices/userSlice.js';
 import styles from './Auth.module.css';
 
 export default function Login() {

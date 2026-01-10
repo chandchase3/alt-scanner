@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../redux/slices/userSlice.js';
+import { registerUser } from '../../redux/slices/userSlice.js';
 import axios from 'axios';
-import { setCredentials } from '../redux/slices/userSlice.js';
+import { setCredentials } from '../../redux/slices/userSlice.js';
 import styles from './Auth.module.css';
 
 
@@ -32,20 +32,19 @@ export default function Register() {
     e.preventDefault();
 
     try {
-      // Dispatch the thunk
+      // Dispatch the registerUser thunk
       const resultAction = await dispatch(registerUser(form));
 
       if (registerUser.fulfilled.match(resultAction)) {
-        // registration succeeded
-        console.log('Registered user:', resultAction.payload);
-        navigate('/'); // redirect to home
+        // Save to Redux and localStorage
+        dispatch(setCredentials(resultAction.payload));
+        navigate('/dashboard'); // redirect after success
       } else {
-        // registration failed
-        console.error('Registration failed:', resultAction.payload);
-        alert(resultAction.payload);
+        alert(resultAction.payload || 'Registration failed');
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error('Registration error:', err);
+      alert('Registration failed');
     }
   };
 

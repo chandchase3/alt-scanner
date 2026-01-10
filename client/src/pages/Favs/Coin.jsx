@@ -3,7 +3,7 @@ import React from 'react';
 const Coin = ({ coin, onClick }) => {
   return (
     <tr
-      className="coin-row"
+      className="lilsts-row"
       onClick={() => onClick(coin.ticker)}
     >
       <td>{coin.ticker}</td>

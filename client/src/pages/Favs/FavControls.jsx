@@ -12,7 +12,7 @@ export default function FavControls({ onAdd, onRefresh }) {
   };
 
   return (
-    <div className="fav-add-coin">
+    <div className="lists-input">
       <input
         type="text"
         value={input}

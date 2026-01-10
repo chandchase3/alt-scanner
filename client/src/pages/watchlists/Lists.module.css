@@ -1,11 +1,11 @@
 /* Container and title */
-.fav-container {
+.container {
   padding: 16px;
-  background-color: #0a0a0a;
+  background-color: #yellow;
   color: #ffffff;
 }
 
-.fav-title {
+.title {
   font-size: 28px;
   font-weight: 400;
   margin-bottom: 16px;
@@ -14,13 +14,13 @@
 /* ========= COIN CONTROLS ========== */
 
 /* Add coin controls */
-.fav-add-coin {
+.inputRow {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.fav-add-coin input {
+.inputRow input {
   flex: 1;
   padding: 8px 12px;
   font-size: 1em;
@@ -30,12 +30,12 @@
   color: #ffffff;
 }
 
-.fav-add-coin input:focus {
+.inputRow input:focus {
   outline: none;
   border-color: #ffffff66;
 }
 
-.fav-add-coin button {
+.inputRow button {
   margin-left: 8px;
   padding: 8px 12px;
   font-size: 1em;
@@ -47,7 +47,7 @@
   transition: background-color 0.2s;
 }
 
-.fav-add-coin button:hover {
+.inputRow button:hover {
   background-color: #2a2f3e;
 }
 
@@ -55,7 +55,7 @@
 
 /* ========== TABLE ============= */
 
-.fav-table {
+.table {
   width: 100%;
   margin-left: 0;
   margin-right: 0;
@@ -65,40 +65,40 @@
   overflow: hidden;
   margin-top: 8px;
 }
-.fav-table thead {
+.table thead {
   background-color: #1b1f2b;
 }
 
-.fav-table th,
-.fav-table td {
+.table th,
+.table td {
   padding: 12px;
   text-align: left;
   color: #ffffff;
 }
 
 /* Zebra striping */
-.fav-table tbody tr:nth-child(odd) {
+.table tbody tr:nth-child(odd) {
   background-color: #0f1118;
 }
 
-.fav-table tbody tr:nth-child(even) {
+.table tbody tr:nth-child(even) {
   background-color: #14171f;
 }
 
 /* Rounded corners on table edges */
-.fav-table th:first-child {
+.table th:first-child {
   border-top-left-radius: 8px;
 }
 
-.fav-table th:last-child {
+.table th:last-child {
   border-top-right-radius: 8px;
 }
 
-.fav-table tbody tr:last-child td:first-child {
+.table tbody tr:last-child td:first-child {
   border-bottom-left-radius: 8px;
 }
 
-.fav-table tbody tr:last-child td:last-child {
+.table tbody tr:last-child td:last-child {
   border-bottom-right-radius: 8px;
 }
 
@@ -140,12 +140,12 @@
 /* ============= TABLE ROWS ================ */
 
 /* Highlight rows on hover and show pointer */
-.coin-row {
+.row{
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 /* Slightly lighter than the row for subtle hover */
-.fav-table tbody tr.coin-row:hover {
+.table tbody tr.row:hover {
   background-color: #181b25;
 }
